@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MATHEORY 龜兔賽跑時鐘運動場：正點與半點</title>
+  <style>
+    :root {
+      --primary: #FF7A00;
+      --primary-dark: #E06300;
+      --secondary: #2B8A3E;
+      --bg-sky: #E3F6FF;
+      --bg-grass-light: #8CE99A;
+      --bg-grass-dark: #51CF66;
+      --text-main: #212529;
+      --text-muted: #6C757D;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang HK", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background: linear-gradient(180deg, var(--bg-sky) 0%, #D0EBFF 45%, var(--bg-grass-light) 45%, var(--bg-grass-dark) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 12px;
+      color: var(--text-main);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 背景裝飾 */
+    .bg-scenery {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-cloud {
+      position: absolute;
+      font-size: 38px;
+      opacity: 0.75;
+    }
+
+    .bg-flower {
+      position: absolute;
+      font-size: 22px;
+      opacity: 0.85;
+    }
+
+    /* 頂部列 */
+    .top-bar {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 8px 14px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-logo {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.8px;
+      padding: 4px 9px;
+      border-radius: 8px;
+    }
+
+    .game-title-small {
+      font-weight: 800;
+      font-size: 13.5px;
+      color: #2B2D42;
+    }
+
+    .btn-restart {
+      background: #F1F3F5;
+      border: none;
+      color: #495057;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    /* 主容器 */
+    .game-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* HUD 儀表板 */
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .hud-box {
+      background: #FFFFFF;
+      border-radius: 14px;
+      padding: 8px 10px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+    }
+
+    .hud-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .hud-value {
+      font-size: 20px;
+      font-weight: 900;
+      color: #212529;
+    }
+
+    /* 時鐘運動場卡片 */
+    .clock-card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      position: relative;
+      border: 3px solid #8CE99A;
+    }
+
+    .prompt-text {
+      font-size: 17px;
+      font-weight: 800;
+      color: #2B2D42;
+      margin-bottom: 10px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 跑道提示小標籤 */
+    .track-hint {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #495057;
+      background: #F8F9FA;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #E9ECEF;
+    }
+
+    /* SVG 運動場時鐘本體 */
+    .clock-svg-wrap {
+      width: 210px;
+      height: 210px;
+      position: relative;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));
+    }
+
+    /* 4 個選項按鈕網格 (2x2) */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .option-btn {
+      background: #FFFFFF;
+      border: 3px solid #CED4DA;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 22px;
+      font-weight: 900;
+      color: #343A40;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #CED4DA;
+      transition: all 0.1s ease;
+      text-align: center;
+    }
+
+    .option-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #CED4DA;
+    }
+
+    .option-btn.correct {
+      background: #D8F5A2 !important;
+      border-color: #40C057 !important;
+      color: #2B8A3E !important;
+      box-shadow: 0 4px 0 #40C057 !important;
+    }
+
+    .option-btn.wrong {
+      background: #FFE3E3 !important;
+      border-color: #FF6B6B !important;
+      color: #C92A2A !important;
+      box-shadow: 0 4px 0 #FF6B6B !important;
+      animation: shake 0.25s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* 彈窗遮罩 */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(33, 37, 41, 0.72);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 28px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #212529;
+      margin: 10px 0 6px;
+    }
+
+    .modal-subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 122, 0, 0.35);
+    }
+
+    .btn-primary:active {
+      background: var(--primary-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 背景裝飾 -->
+  <div class="bg-scenery" aria-hidden="true">
+    <span class="bg-cloud" style="top: 5%; left: 8%;">☁️</span>
+    <span class="bg-cloud" style="top: 12%; right: 10%;">☁️</span>
+    <span class="bg-flower" style="bottom: 5%; left: 6%;">🐢🌱🐰</span>
+    <span class="bg-flower" style="bottom: 4%; right: 7%;">🌻🌿🌷</span>
+  </div>
+
+  <!-- 頂部導覽列 -->
+  <div class="top-bar">
+    <div class="brand-badge">
+      <span class="brand-logo">MATHEORY</span>
+      <span class="game-title-small">🏃‍♂️ 龜兔賽跑時鐘運動場</span>
+    </div>
+    <button class="btn-restart" id="btnRestartTop">重新開始</button>
+  </div>
+
+  <!-- 遊戲主畫面 -->
+  <div class="game-container">
+    <div class="hud">
+      <div class="hud-box">
+        <div class="hud-label">⭐ 目前得分</div>
+        <div class="hud-value" id="scoreDisplay">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">🎯 賽跑題數</div>
+        <div class="hud-value" id="roundDisplay">1 / 10</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">🔥 連擊 Combo</div>
+        <div class="hud-value" id="comboDisplay">0</div>
+      </div>
+    </div>
+
+    <div class="clock-card">
+      <div class="prompt-text"><span>🏟️ 幻想時鐘運動場：現在是幾點呢？</span></div>
+      
+      <div class="track-hint">
+        <span>🐢 烏龜(時針)慢吞吞</span>
+        <span>|</span>
+        <span>🐰 兔子(分針)跑得快</span>
+      </div>
+      
+      <!-- SVG 時鐘賽跑場 -->
+      <div class="clock-svg-wrap">
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <!-- 運動場跑道外圈 -->
+          <circle cx="100" cy="100" r="94" fill="#EBFBEE" stroke="#51CF66" stroke-width="6"/>
+          <circle cx="100" cy="100" r="86" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="2"/>
+          
+          <!-- 刻度與數字由 JS 動態繪製 -->
+          <g id="clockTicks"></g>
+          <g id="clockNumbers"></g>
+
+          <!-- 時針 (烏龜短針) -->
+          <line id="hourHand" x1="100" y1="100" x2="100" y2="62" stroke="#2B8A3E" stroke-width="6" stroke-linecap="round"/>
+          <!-- 分針 (兔子長針) -->
+          <line id="minuteHand" x1="100" y1="100" x2="100" y2="38" stroke="#FF7A00" stroke-width="4" stroke-linecap="round"/>
+          
+          <!-- 指針前端加上可愛小圖示點綴 -->
+          <text id="turtleIcon" x="93" y="58" font-size="14">🐢</text>
+          <text id="rabbitIcon" x="93" y="34" font-size="14">🐰</text>
+
+          <!-- 中心釘 -->
+          <circle cx="100" cy="100" r="6" fill="#343A40"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 4 個選項按鈕 -->
+    <div class="options-grid" id="optionsGrid">
+      <button class="option-btn" data-idx="0">--</button>
+      <button class="option-btn" data-idx="1">--</button>
+      <button class="option-btn" data-idx="2">--</button>
+      <button class="option-btn" data-idx="3">--</button>
+    </div>
+  </div>
+
+  <!-- 開始彈窗 -->
+  <div class="overlay" id="startOverlay">
+    <div class="modal-card">
+      <div style="font-size: 52px; margin-bottom: 6px;">🐢 vs 🐰</div>
+      <div style="background: #FFF4E6; color: var(--primary); font-weight: 900; font-size: 12px; padding: 4px 10px; border-radius: 99px; display: inline-block; margin-bottom: 8px;">MATHEORY 幻想時鐘運動場</div>
+      <h1 class="modal-title">龜兔賽跑時鐘大挑戰</h1>
+      <p class="modal-subtitle">把時鐘當作運動場！觀察跑得慢的烏龜（時針）和跑得快的兔子（分針）在哪裡，找出正確的正點與半點吧！</p>
+      <button class="btn-primary" id="btnStartGame">🚀 開始賽跑</button>
+    </div>
+  </div>
+
+  <!-- 結算彈窗 -->
+  <div class="overlay hidden" id="endOverlay">
+    <div class="modal-card">
+      <div style="font-size: 52px; margin-bottom: 6px;" id="endEmoji">🏆🎉</div>
+      <h2 class="modal-title" id="endTitle">太棒了！</h2>
+      <p class="modal-subtitle" id="endSubtitle">你已經順利完成時鐘運動場賽跑！</p>
+      <div style="background: #F8F9FA; border-radius: 14px; padding: 14px; margin-bottom: 16px; font-size: 20px; font-weight: 900; color: var(--primary);" id="endScoreText">最終得分：100 分</div>
+      <button class="btn-primary" id="btnPlayAgain">🔄 再跑一次</button>
+    </div>
+  </div>
+
+  <script>
+    // 簡易音效合成器
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function playTone(type) {
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(120, now + 0.2);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        }
+      } catch (e) {}
+    }
+
+    // 初始化時鐘面刻度與數字
+    const ticksGroup = document.getElementById('clockTicks');
+    const numbersGroup = document.getElementById('clockNumbers');
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * 30) * Math.PI / 180;
+      const x1 = 100 + 74 * Math.sin(angle);
+      const y1 = 100 - 74 * Math.cos(angle);
+      const x2 = 100 + 82 * Math.sin(angle);
+      const y2 = 100 - 82 * Math.cos(angle);
+      
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', '#2B8A3E');
+      line.setAttribute('stroke-width', i % 3 === 0 ? '3' : '1.5');
+      ticksGroup.appendChild(line);
+
+      const numDist = 58;
+      const nx = 100 + numDist * Math.sin(angle);
+      const ny = 100 - numDist * Math.cos(angle);
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', nx);
+      text.setAttribute('y', ny + 5);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '14');
+      text.setAttribute('font-weight', 'bold');
+      text.setAttribute('fill', '#2B8A3E');
+      text.textContent = i === 0 ? '12' : i;
+      numbersGroup.appendChild(text);
+    }
+
+    // 遊戲狀態
+    let score = 0;
+    let round = 1;
+    let combo = 0;
+    let maxRounds = 10;
+    let currentCorrectObj = { hour: 1, minute: 0 };
+    let isLocked = false;
+
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const roundDisplay = document.getElementById('roundDisplay');
+    const comboDisplay = document.getElementById('comboDisplay');
+    const hourHand = document.getElementById('hourHand');
+    const minuteHand = document.getElementById('minuteHand');
+    const turtleIcon = document.getElementById('turtleIcon');
+    const rabbitIcon = document.getElementById('rabbitIcon');
+    const optionBtns = document.querySelectorAll('.option-btn');
+    const startOverlay = document.getElementById('startOverlay');
+    const endOverlay = document.getElementById('endOverlay');
+
+    function formatTimeLabel(hour, minute) {
+      if (minute === 0) {
+        return `${hour}點正`;
+      } else {
+        return `${hour}點半`;
+      }
+    }
+
+    function generateQuestion() {
+      isLocked = false;
+      optionBtns.forEach(btn => {
+        btn.classList.remove('correct', 'wrong');
+        btn.disabled = false;
+      });
+
+      const hour = Math.floor(Math.random() * 12) + 1;
+      const minute = Math.random() < 0.5 ? 0 : 30;
+
+      currentCorrectObj = { hour, minute };
+
+      const minAngle = minute === 0 ? 0 : 180;
+      const hourAngle = (hour % 12) * 30 + (minute * 0.5);
+
+      minuteHand.setAttribute('transform', `rotate(${minAngle} 100 100)`);
+      hourHand.setAttribute('transform', `rotate(${hourAngle} 100 100)`);
+
+      // 讓小動物圖示跟著指針位置旋轉
+      turtleIcon.setAttribute('transform', `rotate(${hourAngle} 100 100)`);
+      rabbitIcon.setAttribute('transform', `rotate(${minAngle} 100 100)`);
+
+      const optionsSet = new Set();
+      optionsSet.add(JSON.stringify(currentCorrectObj));
+
+      while (optionsSet.size < 4) {
+        const rHour = Math.floor(Math.random() * 12) + 1;
+        const rMin = Math.random() < 0.5 ? 0 : 30;
+        optionsSet.add(JSON.stringify({ hour: rHour, minute: rMin }));
+      }
+
+      const optionsArr = Array.from(optionsSet).map(s => JSON.parse(s)).sort(() => Math.random() - 0.5);
+
+      optionBtns.forEach((btn, idx) => {
+        const opt = optionsArr[idx];
+        btn.textContent = formatTimeLabel(opt.hour, opt.minute);
+        btn.dataset.hour = opt.hour;
+        btn.dataset.minute = opt.minute;
+      });
+
+      roundDisplay.textContent = `${round} / ${maxRounds}`;
+    }
+
+    function handleOptionClick(btn) {
+      if (isLocked) return;
+      isLocked = true;
+
+      const selHour = Number(btn.dataset.hour);
+      const selMinute = Number(btn.dataset.minute);
+
+      const isCorrect = (selHour === currentCorrectObj.hour && selMinute === currentCorrectObj.minute);
+
+      if (isCorrect) {
+        btn.classList.add('correct');
+        playTone('correct');
+        combo++;
+        score += 10 + combo * 2;
+        scoreDisplay.textContent = score;
+        comboDisplay.textContent = combo;
+
+        setTimeout(() => {
+          round++;
+          if (round > maxRounds) {
+            endGame();
+          } else {
+            generateQuestion();
+          }
+        }, 800);
+      } else {
+        btn.classList.add('wrong');
+        playTone('wrong');
+        combo = 0;
+        comboDisplay.textContent = combo;
+
+        optionBtns.forEach(b => {
+          if (Number(b.dataset.hour) === currentCorrectObj.hour && Number(b.dataset.minute) === currentCorrectObj.minute) {
+            b.classList.add('correct');
+          }
+        });
+
+        setTimeout(() => {
+          round++;
+          if (round > maxRounds) {
+            endGame();
+          } else {
+            generateQuestion();
+          }
+        }, 1200);
+      }
+    }
+
+    function startGame() {
+      score = 0;
+      round = 1;
+      combo = 0;
+      scoreDisplay.textContent = score;
+      comboDisplay.textContent = combo;
+      startOverlay.classList.add('hidden');
+      endOverlay.classList.add('hidden');
+      generateQuestion();
+    }
+
+    function endGame() {
+      endOverlay.classList.remove('hidden');
+      document.getElementById('endScoreText').textContent = `最終得分：${score} 分`;
+      let title = '🌟 賽跑冠軍！時鐘小達人！';
+      if (score >= 120) title = '🏆 頂尖運動員！太厲害了！';
+      else if (score >= 80) title = '👍 表現非常優秀！';
+      document.getElementById('endTitle').textContent = title;
+    }
+
+    optionBtns.forEach(btn => {
+      btn.addEventListener('click', () => handleOptionClick(btn));
+    });
+
+    document.getElementById('btnStartGame').addEventListener('click', startGame);
+    document.getElementById('btnPlayAgain').addEventListener('click', startGame);
+    document.getElementById('btnRestartTop').addEventListener('click', () => {
+      startOverlay.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
